@@ -11,14 +11,18 @@ import GoogleMapsUtils
 
 public class GMSMapCoordinator: NSObject, GMSMapViewDelegate {
     
+    private var previousBounds: GMSCoordinateBounds?
+    
     let events: GMSMapEvents
+    let padding: CGFloat
     let onZoomUpdated: (Float) -> Void
     weak var mapView: GMSMapView?
     var markers: Set<GMSMarker> = []
     var clusterManager: GMUClusterManager?
     
-    init(events: GMSMapEvents, onZoomUpdated: @escaping (Float) -> Void) {
+    init(events: GMSMapEvents, padding: CGFloat, onZoomUpdated: @escaping (Float) -> Void) {
         self.events = events
+        self.padding = padding
         self.onZoomUpdated = onZoomUpdated
         super.init()
     }
@@ -46,11 +50,11 @@ public class GMSMapCoordinator: NSObject, GMSMapViewDelegate {
         }
     }
     
-    func setMarkers(_ markers: [GMSMarker]) -> Bool {
+    func setMarkers(_ markers: [GMSMarker]) {
         let newMarkers = Set(markers)
         
         guard newMarkers != self.markers else {
-            return false
+            return
         }
         
         if let clusterManager {
@@ -73,8 +77,6 @@ public class GMSMapCoordinator: NSObject, GMSMapViewDelegate {
         }
         
         self.markers = newMarkers
-        
-        return true
     }
     
     func setZoom(_ zoom: Float) {
@@ -82,6 +84,20 @@ public class GMSMapCoordinator: NSObject, GMSMapViewDelegate {
             return
         }
         mapView.animate(toZoom: zoom)
+    }
+    
+    func setCameraBounds(_ bounds: GMSCoordinateBounds) {
+        guard let mapView, bounds != previousBounds else {
+            return
+        }
+        
+        previousBounds = bounds
+        
+        let cameraUpdate = GMSCameraUpdate.fit(
+            bounds,
+            withPadding: padding
+        )
+        mapView.animate(with: cameraUpdate)
     }
     
     // MARK: - GMSMapViewDelegate

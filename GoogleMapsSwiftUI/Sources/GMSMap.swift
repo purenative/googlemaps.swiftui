@@ -17,13 +17,18 @@ public struct GMSMap: UIViewControllerRepresentable {
     var markers: [GMSMarker]
     
     var zoom: Binding<Float>?
+    var bounds: Binding<GMSCoordinateBounds?>?
     
     let clusteringSettings: GMSClusteringSettings?
     
-    public init(markers: Binding<[GMSMarker]>, zoom: Binding<Float>? = nil, clusteringSettings: GMSClusteringSettings? = nil) {
+    let padding: CGFloat
+    
+    public init(markers: Binding<[GMSMarker]>, zoom: Binding<Float>? = nil, bounds: Binding<GMSCoordinateBounds?>? = nil, clusteringSettings: GMSClusteringSettings? = nil, padding: CGFloat = 100) {
         _markers = markers
         self.zoom = zoom
+        self.bounds = bounds
         self.clusteringSettings = clusteringSettings
+        self.padding = padding
     }
     
     public func makeUIViewController(context: Context) -> GMSMapViewController {
@@ -36,20 +41,21 @@ public struct GMSMap: UIViewControllerRepresentable {
     }
     
     public func updateUIViewController(_ mapViewController: GMSMapViewController, context: Context) {
-        let markersUpdated = context.coordinator.setMarkers(markers)
-        
-        guard !markersUpdated else {
-            return
-        }
+        context.coordinator.setMarkers(markers)
         
         if let zoom {
             context.coordinator.setZoom(zoom.wrappedValue)
+        }
+        
+        if let bounds = bounds?.wrappedValue {
+            context.coordinator.setCameraBounds(bounds)
         }
     }
     
     public func makeCoordinator() -> GMSMapCoordinator {
         GMSMapCoordinator(
             events: events,
+            padding: padding,
             onZoomUpdated: { zoom?.wrappedValue = $0 }
         )
     }
